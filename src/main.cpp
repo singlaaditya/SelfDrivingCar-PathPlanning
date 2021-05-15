@@ -105,6 +105,8 @@ int main() {
 		  }
 		  
 		  bool too_close = false;
+		  bool safe_left_turn = true;
+		  bool safe_right_turn = true;
 		  
 		  for (int i =0; i < sensor_fusion.size(); i++)
 		  {
@@ -117,23 +119,82 @@ int main() {
 				double check_car_s = sensor_fusion[i][5];
 				check_car_s += ((double)prev_size*0.02*check_speed);
 				
-				if ((check_car_s>car_s) && (check_car_s - car_s) < 30)
+				//if ((check_car_s>car_s && (check_car_s - car_s) < 30) || (check_car_s<car_s && (car_s - check_car_s ) < 30))
+              if ((check_car_s>car_s && (check_car_s - car_s) < 30))
                 {
+                    if (vx == 0 && vy == 0)
+                      ref_vel = 0;
 					too_close = true;
-                  break;
+			if ((lane - 1) >= 0)
+			{
+				int temp = lane - 1;
+				for (int j = 0 ; j < sensor_fusion.size(); j++)
+				{
+					float d = sensor_fusion[j][6];
+					if (d < (4 *(temp + 1)) && d >(4 * temp))
+					{
+						double vx = sensor_fusion[j][3];
+						double vy = sensor_fusion[j][4];
+						double check_speed = sqrt(vx*vx+vy*vy);
+						double check_car_s = sensor_fusion[j][5];
+						check_car_s += ((double)prev_size*0.02*check_speed);
+						if (abs(check_car_s - car_s) < 30)
+						{
+							safe_left_turn = false;
+						}
+					}
+				}
+				if (safe_left_turn)
+				{
+					lane = temp;
+					break;
 				}
 				
 			}
+			else if ((lane + 1) <= 2)
+			{
+				int temp = lane + 1;
+				for (int j = 0 ; j < sensor_fusion.size(); j++)
+				{
+					float d = sensor_fusion[j][6];
+					if (d < (4 *(temp + 1)) && d >(4 * temp))
+					{
+						double vx = sensor_fusion[j][3];
+						double vy = sensor_fusion[j][4];
+						double check_speed = sqrt(vx*vx+vy*vy);
+						double check_car_s = sensor_fusion[j][5];
+						check_car_s += ((double)prev_size*0.02*check_speed);
+						if (abs(check_car_s - car_s) < 30)
+						{
+							safe_right_turn = false;
+							break;
+						}
+						
+					}
+				}
+				if (safe_right_turn)
+				{
+					lane = temp;
+					break;
+				}
+			}
+				}
+			}
+            
+			if (too_close)
+              break;
 		   }
 		   
-		   if(too_close)
-		   {
+		   
+		   
+	    if(too_close)
+	    {
 			ref_vel -= 0.224;
-		    }
-			else if (ref_vel < 49.5)
-			{
-				ref_vel += 0.224;
-			}
+		}
+		else if (ref_vel < 49.5)
+		{
+			ref_vel += 0.224;
+		}
 
 
           vector<double> next_x_vals;
